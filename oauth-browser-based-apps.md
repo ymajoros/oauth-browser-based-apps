@@ -258,8 +258,8 @@ Using OAuth for browser-based apps in a first-party same-domain scenario provide
 
 <!-- Changed the wording here to try to be consistent and call it BFF everywhere (backend/application server/BFF where used interchangeably -->
 
-JavaScript Applications with a stateful BFF
--------------------------------------------
+Backend For Frontend (BFF) Proxy
+--------------------------------
 
     +-------------+  +--------------+ +---------------+
     |             |  |              | |               |
@@ -322,7 +322,14 @@ browser and Application Server.
 
 When implementing a BFF for securing the authorization flow, in order to avoid all leaks in case of succesful XSS, the OAuth 2.0 Authorization Code grant with PKCE flow MUST be initiated from the BFF, and not from the frontend part of the application: as an authorization code is still reaching the frontend, it could be intercepted in the case of a successful XSS attack. If the PKCE *code verifier* is kept on the frontend rather than in the BFF itself, this could lead to complete owning of the session by the attacker. In other words, the BFF is not only responsible for keeping the _tokens_ safe, but also to keep all parts of the authorization flow separate from the web application.
 
+YM-TODO: move attack to different section, because this section is about a BFF which is responsible for full auth code flow + pkce
+
+vvvvv only relevant if flow with pkce is initiated from frontend; no point in doing that; bad pattern; we should avoid that architecture; not one of the 3 good patterns (no best one, just tradeoff)s → move to security considerations 
+
 An example of such attack would be to leak the authorization code to the attacker, who could then start a session on its side and restart the complete user authorization flow in parallel to avoid detection.
+Replace diagram with:
+Attacker has to tell the frontend to restart auth flow and does not intercept anything, so the flow succeeds.
+To avoid this attack, make sure that the (thing) that generates the code verifier has to be the same (thing) that exchanges the auth code.
 
                                                                    Resource  Authentication
      User  Attacker       Frontend            BFF            server     server
@@ -334,7 +341,7 @@ An example of such attack would be to leak the authorization code to the attacke
       |       |             | -------------------------------------------->                            
       |       |             | authorization code              |           |                            
       |       |             | <- - - - - - - - - - - - - - - - - - - - - -                            
-      |       |  XSS leak   |                 |               |           |                            
+      |       |  XSS leak (auth code + code verifier)         |           |                            
       |       | <- - - - - -                  |               |           |                            
       |       | ------------------------------>               |           |                            
       |       |             |                 |  /token       |           |                            
@@ -343,7 +350,8 @@ An example of such attack would be to leak the authorization code to the attacke
       |       | httponly cookie               |               |           |                            
       |       | <- - - - - - - - - - - - -  -                 |           |                            
     This first cookie gets stolen. This allows calling random endpoints. 
-    User doesn't see that, as we start the authentication flow from scratch.           
+    At this point, attack already succeeded. To cover its tracks the attacker could
+    restart the authentication flow from scratch without interception.           
       |       |             |----.                            |           |                            
       |       |             |    |   restart (redirect to /)  |           |                            
       |       |             |<---'                            |           |                            
